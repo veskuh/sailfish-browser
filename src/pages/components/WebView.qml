@@ -19,6 +19,7 @@ WebContainer {
     property int loadProgress
     property alias contentItem: webView
     property TabModel tabModel
+    property alias currentTab: tab
     readonly property bool fullscreenMode: (webView.chromeGestureEnabled && !webView.chrome) || webContainer.inputPanelVisible || !webContainer.foreground
     property alias canGoBack: tab.canGoBack
     property alias canGoForward: tab.canGoForward
@@ -49,7 +50,6 @@ WebContainer {
 
     // Temporary functions / properties, remove once all functions have been moved
     property alias chrome: webView.chrome
-    property alias tab: tab
     function load(url) {
         webView.load(url)
     }

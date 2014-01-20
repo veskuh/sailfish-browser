@@ -21,7 +21,7 @@ Page {
     property alias favorites: favoriteModel
     property alias history: historyModel
     property alias viewLoading: webView.loading
-    property alias currentTab: webView.tab
+    property alias currentTab: webView.currentTab
     property string title
     property string url
 
@@ -44,7 +44,7 @@ Page {
             if (webView.loading) {
                 webView.stop()
             }
-            webView.tab.loadWhenTabChanges = true
+            webView.currentTab.loadWhenTabChanges = true
             captureScreen()
         }
         // tabMovel.addTab does not trigger anymore navigateTo call. Always done via
@@ -67,7 +67,7 @@ Page {
             webView.stop()
         }
 
-        webView.tab.loadWhenTabChanges = loadActive
+        webView.currentTab.loadWhenTabChanges = loadActive
         webView.tabModel.remove(index)
     }
 
@@ -80,7 +80,7 @@ Page {
             webView.stop()
         }
 
-        webView.tab.loadWhenTabChanges = loadActive
+        webView.currentTab.loadWhenTabChanges = loadActive
         webView.tabModel.closeActiveTab();
 
         if (webView.tabModel.count === 0 && browserPage.status === PageStatus.Active) {
@@ -154,7 +154,7 @@ Page {
             browserPage.title = title
         }
 
-        webView.tab.loadWhenTabChanges = true;
+        webView.currentTab.loadWhenTabChanges = true;
         webView.tabModel.activateTab(index)
         // When tab is loaded we always pop back to BrowserPage.
         pageStack.pop(browserPage)
@@ -171,7 +171,7 @@ Page {
                 size -= toolbarRow.height
             }
 
-            webView.tab.captureScreen(webView.url, 0, 0, size, size, browserPage.rotation)
+            webView.currentTab.captureScreen(webView.url, 0, 0, size, size, browserPage.rotation)
         }
     }
 
@@ -329,7 +329,7 @@ Page {
         id: webView
 
         tabModel: TabModel {
-            currentTab: webView.tab
+            currentTab: webView.currentTab
             browsing: browserPage.status === PageStatus.Active
         }
     }
@@ -431,7 +431,7 @@ Page {
 
                 Browser.IconButton {
                     enabled: WebUtils.firstUseDone
-                    property bool favorited: favorites.count > 0 && favorites.contains(webView.tab.url)
+                    property bool favorited: favorites.count > 0 && favorites.contains(webView.currentTab.url)
                     source: favorited ? "image://theme/icon-m-favorite-selected" : "image://theme/icon-m-favorite"
                     onClicked: {
                         if (favorited) {
