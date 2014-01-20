@@ -265,7 +265,7 @@ Page {
                     duration: 150
                 }
                 FadeAnimation {
-                    target: !fullscreenMode ? controlArea : null
+                    target: !webView.fullscreenMode ? controlArea : null
                     to: 0
                     duration: 150
                 }
@@ -283,7 +283,7 @@ Page {
                 }
             }
             FadeAnimation {
-                target: !fullscreenMode ? controlArea : null
+                target: !webView.fullscreenMode ? controlArea : null
                 to: 1
                 duration: 150
             }
