@@ -18,6 +18,7 @@ WebContainer {
     property alias loading: webView.loading
     property int loadProgress
     property alias contentItem: webView
+    property TabModel tabModel
     readonly property bool fullscreenMode: (webView.chromeGestureEnabled && !webView.chrome) || webContainer.inputPanelVisible || !webContainer.foreground
 
     function suspend() {
@@ -32,8 +33,9 @@ WebContainer {
         webView.sendAsyncMessage(name, data)
     }
 
-    // Temporary functions / properties
+    // Temporary functions / properties, remove once all functions have been moved
     property alias chrome: webView.chrome
+    property alias tab: tab
     function load(url) {
         webView.load(url)
     }
@@ -53,6 +55,26 @@ WebContainer {
         id: background
         anchors.fill: parent
         color: webView.bgcolor ? webView.bgcolor : "white"
+    }
+
+    Tab {
+        id: tab
+
+        // Indicates whether the next url that is set to this Tab element will be loaded.
+        // Used when new tabs are created, tabs are loaded, and with back and forward,
+        // All of these actions load data asynchronously from the DB, and the changes
+        // are reflected in the Tab element.
+        property bool loadWhenTabChanges: false
+        property bool backForwardNavigation: false
+
+        onUrlChanged: {
+            if (tab.valid && (loadWhenTabChanges || backForwardNavigation)) {
+                // Both url and title are updated before url changed is emitted.
+                load(url, title)
+                // loadWhenTabChanges will be set to false when mozview says that url has changed
+                // loadWhenTabChanges = false
+            }
+        }
     }
 
     QmlMozView {

@@ -17,11 +17,11 @@ Page {
     id: browserPage
 
     property Item firstUseOverlay
-    property alias tabs: tabModel
+    property alias tabs: webView.tabModel
     property alias favorites: favoriteModel
     property alias history: historyModel
     property alias viewLoading: webView.loading
-    property alias currentTab: tab
+    property alias currentTab: webView.tab
     property string title
     property string url
 
@@ -44,7 +44,7 @@ Page {
             if (webView.loading) {
                 webView.stop()
             }
-            tab.loadWhenTabChanges = true
+            webView.tab.loadWhenTabChanges = true
             captureScreen()
         }
         // tabMovel.addTab does not trigger anymore navigateTo call. Always done via
@@ -54,12 +54,12 @@ Page {
         // This was broken already before this change. We need to add mapping between intented
         // load url and actual result url to TabModel::activateTab so that finding can be done.
         newTabRequested = true
-        tabModel.addTab(url, foreground)
+        webView.tabModel.addTab(url, foreground)
         load(url, title)
     }
 
     function closeTab(index, loadActive) {
-        if (tabModel.count == 0) {
+        if (webView.tabModel.count == 0) {
             return
         }
 
@@ -67,12 +67,12 @@ Page {
             webView.stop()
         }
 
-        tab.loadWhenTabChanges = loadActive
-        tabModel.remove(index)
+        webView.tab.loadWhenTabChanges = loadActive
+        webView.tabModel.remove(index)
     }
 
     function closeActiveTab(loadActive) {
-        if (tabModel.count === 0) {
+        if (webView.tabModel.count === 0) {
             return
         }
 
@@ -80,10 +80,10 @@ Page {
             webView.stop()
         }
 
-        tab.loadWhenTabChanges = loadActive
-        tabModel.closeActiveTab();
+        webView.tab.loadWhenTabChanges = loadActive
+        webView.tabModel.closeActiveTab();
 
-        if (tabModel.count === 0 && browserPage.status === PageStatus.Active) {
+        if (webView.tabModel.count === 0 && browserPage.status === PageStatus.Active) {
             browserPage.title = ""
             browserPage.url = ""
             pageStack.push(Qt.resolvedUrl("TabPage.qml"), {"browserPage" : browserPage, "initialSearchFocus": true })
@@ -120,9 +120,9 @@ Page {
             return
         }
 
-        if (tabModel.count == 0) {
+        if (webView.tabModel.count == 0) {
             newTabRequested = true
-            tabModel.addTab(url, true)
+            webView.tabModel.addTab(url, true)
         }
 
         if (title) {
@@ -154,8 +154,8 @@ Page {
             browserPage.title = title
         }
 
-        tab.loadWhenTabChanges = true;
-        tabModel.activateTab(index)
+        webView.tab.loadWhenTabChanges = true;
+        webView.tabModel.activateTab(index)
         // When tab is loaded we always pop back to BrowserPage.
         pageStack.pop(browserPage)
     }
@@ -171,12 +171,12 @@ Page {
                 size -= toolbarRow.height
             }
 
-            tab.captureScreen(webView.url, 0, 0, size, size, browserPage.rotation)
+            webView.tab.captureScreen(webView.url, 0, 0, size, size, browserPage.rotation)
         }
     }
 
     function closeAllTabs() {
-        tabModel.clear()
+        webView.tabModel.clear()
     }
 
     function openAuthDialog(input) {
@@ -302,36 +302,10 @@ Page {
         }
     }
 
-    TabModel {
-        id: tabModel
-        currentTab: tab
-        browsing: browserPage.status === PageStatus.Active
-    }
-
     HistoryModel {
         id: historyModel
 
-        tabId: tabModel.currentTabId
-    }
-
-    Tab {
-        id: tab
-
-        // Indicates whether the next url that is set to this Tab element will be loaded.
-        // Used when new tabs are created, tabs are loaded, and with back and forward,
-        // All of these actions load data asynchronously from the DB, and the changes
-        // are reflected in the Tab element.
-        property bool loadWhenTabChanges: false
-        property bool backForwardNavigation: false
-
-        onUrlChanged: {
-            if (tab.valid && (loadWhenTabChanges || backForwardNavigation)) {
-                // Both url and title are updated before url changed is emitted.
-                load(url, title)
-                // loadWhenTabChanges will be set to false when mozview says that url has changed
-                // loadWhenTabChanges = false
-            }
-        }
+        tabId: webView.tabModel.currentTabId
     }
 
     Browser.DownloadRemorsePopup { id: downloadPopup }
@@ -353,6 +327,11 @@ Page {
 
     Browser.WebView {
         id: webView
+
+        tabModel: TabModel {
+            currentTab: webView.tab
+            browsing: browserPage.status === PageStatus.Active
+        }
     }
 
 
@@ -451,7 +430,7 @@ Page {
 
                 Browser.IconButton {
                     enabled: WebUtils.firstUseDone
-                    property bool favorited: favorites.count > 0 && favorites.contains(tab.url)
+                    property bool favorited: favorites.count > 0 && favorites.contains(webView.tab.url)
                     source: favorited ? "image://theme/icon-m-favorite-selected" : "image://theme/icon-m-favorite"
                     onClicked: {
                         if (favorited) {
@@ -468,8 +447,8 @@ Page {
                     onClicked: controlArea.openTabPage(false, false, PageStackAction.Animated)
 
                     Label {
-                        visible: tabModel.count > 0
-                        text: tabModel.count
+                        visible: webView.tabModel.count > 0
+                        text: webView.tabModel.count
                         x: (parent.width - contentWidth) / 2 - 5
                         y: (parent.height - contentHeight) / 2 - 5
                         font.pixelSize: Theme.fontSizeExtraSmall
@@ -540,7 +519,7 @@ Page {
             }
             if (webView.url != "") {
                 captureScreen()
-                if (!tabModel.activateTab(url)) {
+                if (!webView.tabModel.activateTab(url)) {
                     // Not found in tabs list, create newtab and load
                     newTab(url, true)
                 }
@@ -549,7 +528,7 @@ Page {
                 if (WebUtils.firstUseDone) {
                     load(url)
                 } else {
-                    tabModel.addTab(url, false)
+                    webView.tabModel.addTab(url, false)
                 }
             }
             if (browserPage.status !== PageStatus.Active) {
