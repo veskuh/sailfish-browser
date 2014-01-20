@@ -13,7 +13,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Sailfish.Browser 1.0
-import org.nemomobile.connectivity 1.0
 import "components" as Browser
 
 
@@ -49,7 +48,7 @@ Page {
                 webView.stop()
             }
             webView.currentTab.loadWhenTabChanges = true
-            captureScreen()
+            webView.captureScreen()
         }
         // tabMovel.addTab does not trigger anymore navigateTo call. Always done via
         // QmlMozView onUrlChanged handler.
@@ -99,11 +98,11 @@ Page {
 
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
             && !browserPage._deferredReload
-            && !connectionHelper.haveNetworkConnectivity()) {
+            && !webView.connectionHelper.haveNetworkConnectivity()) {
 
             browserPage._deferredReload = true
             browserPage._deferredLoad = null
-            connectionHelper.attemptToConnectNetwork()
+            webView.connectionHelper.attemptToConnectNetwork()
             return
         }
 
@@ -112,7 +111,7 @@ Page {
 
     function load(url, title, force) {
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
-            && !connectionHelper.haveNetworkConnectivity()
+            && !webView.connectionHelper.haveNetworkConnectivity()
             && !browserPage._deferredLoad) {
 
             browserPage._deferredReload = false
@@ -120,7 +119,7 @@ Page {
                 "url": url,
                 "title": title
             }
-            connectionHelper.attemptToConnectNetwork()
+            webView.connectionHelper.attemptToConnectNetwork()
             return
         }
 
@@ -140,7 +139,7 @@ Page {
 
         if ((url !== "" && webView.url != url) || force) {
             browserPage.url = url
-            resourceController.firstFrameRendered = false
+            webView.resourceController.firstFrameRendered = false
             webView.load(url)
         }
     }
@@ -166,17 +165,6 @@ Page {
 
     function deleteTabHistory() {
         historyModel.clear()
-    }
-
-    function captureScreen() {
-        if (status == PageStatus.Active && resourceController.firstFrameRendered) {
-            var size = Screen.width
-            if (browserPage.isLandscape && !webView.fullscreenMode) {
-                size -= toolbarRow.height
-            }
-
-            webView.currentTab.captureScreen(webView.url, 0, 0, size, size, browserPage.rotation)
-        }
     }
 
     function closeAllTabs() {
@@ -313,31 +301,15 @@ Page {
     }
 
     Browser.DownloadRemorsePopup { id: downloadPopup }
-    Browser.ResourceController {
-        id: resourceController
-        webView: webView
-        background: webView.background
-
-        onWebViewSuspended: {
-            connectionHelper.closeNetworkSession()
-        }
-
-        onFirstFrameRenderedChanged: {
-            if (firstFrameRendered) {
-                captureScreen()
-            }
-        }
-    }
-
     Browser.WebView {
         id: webView
 
+        active: browserPage.status === PageStatus.Active
         tabModel: TabModel {
             currentTab: webView.currentTab
             browsing: browserPage.status === PageStatus.Active
         }
     }
-
 
     Column {
         id: controlArea
@@ -350,7 +322,7 @@ Page {
 
         function openTabPage(focus, newTab, operationType) {
             if (browserPage.status === PageStatus.Active) {
-                captureScreen()
+                webView.captureScreen()
                 pageStack.push(Qt.resolvedUrl("TabPage.qml"),
                                {
                                    "browserPage" : browserPage,
@@ -524,7 +496,7 @@ Page {
                 return
             }
             if (webView.url != "") {
-                captureScreen()
+                webView.captureScreen()
                 if (!webView.tabModel.activateTab(url)) {
                     // Not found in tabs list, create newtab and load
                     newTab(url, true)
@@ -562,10 +534,6 @@ Page {
         }
     }
 
-    Component.onDestruction: {
-        connectionHelper.closeNetworkSession()
-    }
-
     BookmarkModel {
         id: favoriteModel
     }
@@ -578,30 +546,5 @@ Page {
 
     Browser.BrowserNotification {
         id: notification
-    }
-
-    ConnectionHelper {
-        id: connectionHelper
-
-        onNetworkConnectivityEstablished: {
-            var url
-            var title
-
-            if (browserPage._deferredLoad) {
-                url = browserPage._deferredLoad["url"]
-                title = browserPage._deferredLoad["title"]
-                browserPage._deferredLoad = null
-
-                browserPage.load(url, title, true)
-            } else if (browserPage._deferredReload) {
-                browserPage._deferredReload = false
-                webView.reload()
-            }
-        }
-
-        onNetworkConnectivityUnavailable: {
-            browserPage._deferredLoad = null
-            browserPage._deferredReload = false
-        }
     }
 }
