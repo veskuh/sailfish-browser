@@ -546,6 +546,18 @@ WebContainer {
         }
     }
 
+    Connections {
+        target: tabModel
+        onAboutToCloseActiveTab: {
+            if (webView.loading) {
+                webView.stop()
+            }
+
+            // Do we really need this
+            tab.loadWhenTabChanges = true
+        }
+    }
+
     ConnectionHelper {
         id: connectionHelper
 
