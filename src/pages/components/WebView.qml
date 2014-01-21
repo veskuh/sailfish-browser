@@ -29,6 +29,9 @@ WebContainer {
     property alias canGoBack: tab.canGoBack
     property alias canGoForward: tab.canGoForward
 
+    property alias url: tab.url
+    property alias title: tab.title
+
     // Groupped properties
     property alias popups: webPopus
 
@@ -44,15 +47,50 @@ WebContainer {
         webView.stop()
     }
 
+    function load(url, title, force) {
+        if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
+            && !connectionHelper.haveNetworkConnectivity()
+            && !webView._deferredLoad) {
+
+            webView._deferredReload = false
+            webView._deferredLoad = {
+                "url": url,
+                "title": title
+            }
+            connectionHelper.attemptToConnectNetwork()
+            return
+        }
+
+        if (tabModel.count == 0) {
+            tab.newTabRequested = true
+            tabModel.addTab(url, title, true)
+        }
+
+        if (title) {
+            browserPage.title = title
+        } else {
+            browserPage.title = ""
+        }
+
+        // Always enable chrome when load is called.
+        webView.chrome = true
+
+        if ((url !== "" && webView.url != url) || force) {
+            browserPage.url = url
+            resourceController.firstFrameRendered = false
+            webView.load(url)
+        }
+    }
+
     function reload() {
         var url = browserPage.url
 
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
-            && !browserPage._deferredReload
+            && !webView._deferredReload
             && !connectionHelper.haveNetworkConnectivity()) {
 
-            browserPage._deferredReload = true
-            browserPage._deferredLoad = null
+            webView._deferredReload = true
+            webView._deferredLoad = null
             connectionHelper.attemptToConnectNetwork()
             return
         }
@@ -87,9 +125,6 @@ WebContainer {
     property alias chrome: webView.chrome
     property alias resourceController: resourceController
     property alias connectionHelper: connectionHelper
-    function load(url) {
-        webView.load(url)
-    }
 
     width: parent.width
     height: browserPage.orientation === Orientation.Portrait ? Screen.height : Screen.width
@@ -110,6 +145,9 @@ WebContainer {
 
     Tab {
         id: tab
+
+        // Used by newTab function
+        property bool newTabRequested
 
         // Indicates whether the next url that is set to this Tab element will be loaded.
         // Used when new tabs are created, tabs are loaded, and with back and forward,
@@ -143,6 +181,9 @@ WebContainer {
         // let's keep auth data in this auxilary attribute whose sole purpose is to
         // pass arguments to openAuthDialog().
         property var _authData: null
+
+        property bool _deferredReload
+        property var _deferredLoad: null
 
         function openAuthDialog(input) {
             var data = input !== undefined ? input : webView._authData
@@ -276,14 +317,14 @@ WebContainer {
             if (tab.backForwardNavigation) {
                 tab.updateTab(browserPage.url, browserPage.title, "")
                 tab.backForwardNavigation = false
-            } else if (!browserPage.newTabRequested) {
+            } else if (!tab.newTabRequested) {
                 // Use browserPage.title here to avoid wrong title to blink.
                 // browserPage.load() updates browserPage's title before load starts.
                 // QmlMozView's title is not correct over here.
                 tab.navigateTo(browserPage.url, browserPage.title, "")
             }
             tab.loadWhenTabChanges = false
-            browserPage.newTabRequested = false
+            tab.newTabRequested = false
         }
 
         onBgcolorChanged: {
@@ -556,6 +597,23 @@ WebContainer {
             // Do we really need this
             tab.loadWhenTabChanges = true
         }
+
+        onAboutToAddTab: {
+            if (foreground) {
+                // This might be something that we don't want to have.
+                if (webView.loading) {
+                    webView.stop()
+                }
+                tab.loadWhenTabChanges = true
+                captureScreen()
+            }
+            tab.newTabRequested = true
+        }
+
+        onTabAdded: {
+            // Should webContainer.load
+            browserPage.load(tab.url, tab.title)
+        }
     }
 
     ConnectionHelper {
@@ -565,21 +623,21 @@ WebContainer {
             var url
             var title
 
-            if (browserPage._deferredLoad) {
-                url = browserPage._deferredLoad["url"]
-                title = browserPage._deferredLoad["title"]
-                browserPage._deferredLoad = null
+            if (webView._deferredLoad) {
+                url = webView._deferredLoad["url"]
+                title = webView._deferredLoad["title"]
+                webView._deferredLoad = null
 
                 browserPage.load(url, title, true)
-            } else if (browserPage._deferredReload) {
-                browserPage._deferredReload = false
+            } else if (webView._deferredReload) {
+                webView._deferredReload = false
                 webView.reload()
             }
         }
 
         onNetworkConnectivityUnavailable: {
-            browserPage._deferredLoad = null
-            browserPage._deferredReload = false
+            webView._deferredLoad = null
+            webView._deferredReload = false
         }
     }
 
