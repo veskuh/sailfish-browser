@@ -44,6 +44,22 @@ WebContainer {
         webView.stop()
     }
 
+    function reload() {
+        var url = browserPage.url
+
+        if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
+            && !browserPage._deferredReload
+            && !connectionHelper.haveNetworkConnectivity()) {
+
+            browserPage._deferredReload = true
+            browserPage._deferredLoad = null
+            connectionHelper.attemptToConnectNetwork()
+            return
+        }
+
+        webView.reload()
+    }
+
     function suspend() {
         webView.suspendView()
     }

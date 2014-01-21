@@ -88,22 +88,6 @@ Page {
         }
     }
 
-    function reload() {
-        var url = browserPage.url
-
-        if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
-            && !browserPage._deferredReload
-            && !webView.connectionHelper.haveNetworkConnectivity()) {
-
-            browserPage._deferredReload = true
-            browserPage._deferredLoad = null
-            webView.connectionHelper.attemptToConnectNetwork()
-            return
-        }
-
-        webView.reload()
-    }
-
     function load(url, title, force) {
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
             && !webView.connectionHelper.haveNetworkConnectivity()
@@ -368,7 +352,7 @@ Page {
                 Browser.IconButton {
                     enabled: WebUtils.firstUseDone
                     source: webView.loading ? "image://theme/icon-m-reset" : "image://theme/icon-m-refresh"
-                    onClicked: webView.loading ? webView.stop() : browserPage.reload()
+                    onClicked: webView.loading ? webView.stop() : webView.reload()
                 }
 
                 Browser.IconButton {
@@ -402,7 +386,7 @@ Page {
                 if (webView.loading) {
                     webView.stop()
                 } else {
-                    browserPage.reload()
+                    webView.reload()
                 }
             }
         }
