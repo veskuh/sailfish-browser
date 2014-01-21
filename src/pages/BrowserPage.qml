@@ -163,10 +163,6 @@ Page {
         pageStack.pop(browserPage)
     }
 
-    function deleteTabHistory() {
-        historyModel.clear()
-    }
-
     function openAuthDialog(input) {
         var data = input !== undefined ? input : browserPage._authData
         var winid = data.winid
