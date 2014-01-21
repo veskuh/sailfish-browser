@@ -167,10 +167,6 @@ Page {
         historyModel.clear()
     }
 
-    function closeAllTabs() {
-        webView.tabModel.clear()
-    }
-
     function openAuthDialog(input) {
         var data = input !== undefined ? input : browserPage._authData
         var winid = data.winid
