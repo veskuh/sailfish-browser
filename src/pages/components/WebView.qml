@@ -17,6 +17,9 @@ WebContainer {
     // This cannot be bindings in multiple mozview case. Will change in
     // later commits.
     property bool active
+    // This property should cover all possible popus
+    property alias popupActive: webView._ctxMenuActive
+
     property alias loading: webView.loading
     property int loadProgress
     property alias contentItem: webView
@@ -99,11 +102,6 @@ WebContainer {
         property bool loadWhenTabChanges: false
         property bool backForwardNavigation: false
 
-        function viewId() {
-            // QmlMozView uniqueID() should be a property
-            return webView.uniqueID()
-        }
-
         onUrlChanged: {
             if (tab.valid && (loadWhenTabChanges || backForwardNavigation)) {
                 // Both url and title are updated before url changed is emitted.
@@ -121,6 +119,9 @@ WebContainer {
         readonly property bool readyToLoad: viewReady && tabModel.loaded
         property bool userHasDraggedWhileLoading
         property bool viewReady
+
+        property Item _contextMenu
+        property bool _ctxMenuActive: _contextMenu != null && _contextMenu.active
 
         // As QML can't disconnect closure from a signal (but methods only)
         // let's keep auth data in this auxilary attribute whose sole purpose is to
@@ -158,6 +159,40 @@ WebContainer {
                 webView.sendAsyncMessage("authresponse",
                                          {"winid": winid, "accepted": false})
             })
+        }
+
+        function openContextMenu(linkHref, imageSrc, linkTitle, contentType) {
+            var ctxMenuComp
+
+            if (_contextMenu) {
+                _contextMenu.linkHref = linkHref
+                _contextMenu.linkTitle = linkTitle.trim()
+                _contextMenu.imageSrc = imageSrc
+                hideVirtualKeyboard()
+                _contextMenu.show()
+            } else {
+                ctxMenuComp = Qt.createComponent(webPopus.contextMenuComponentUrl)
+                if (ctxMenuComp.status !== Component.Error) {
+                    _contextMenu = ctxMenuComp.createObject(browserPage,
+                                                            {
+                                                                "linkHref": linkHref,
+                                                                "imageSrc": imageSrc,
+                                                                "linkTitle": linkTitle.trim(),
+                                                                "contentType": contentType,
+                                                                "viewId": webView.uniqueID()
+                                                            })
+                    hideVirtualKeyboard()
+                    _contextMenu.show()
+                } else {
+                    console.log("Can't load BrowserContextMenu.qml")
+                }
+            }
+        }
+
+        function hideVirtualKeyboard() {
+            if (Qt.inputMethod.visible) {
+                webContainer.parent.focus = true
+            }
         }
 
         visible: WebUtils.firstUseDone
@@ -466,7 +501,7 @@ WebContainer {
             color: Theme.highlightDimmerColor
             smooth: true
             radius: 2.5
-            visible: webView.contentHeight > webView.height && !webView.pinching && !_ctxMenuActive
+            visible: webView.contentHeight > webView.height && !webView.pinching && !webView._ctxMenuActive
             opacity: webView.moving ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
         }
@@ -480,7 +515,7 @@ WebContainer {
             color: Theme.highlightDimmerColor
             smooth: true
             radius: 2.5
-            visible: webView.contentWidth > webView.width && !webView.pinching && !_ctxMenuActive
+            visible: webView.contentWidth > webView.width && !webView.pinching && !webView._ctxMenuActive
             opacity: webView.moving ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
         }
@@ -543,6 +578,7 @@ WebContainer {
         id: webPopus
 
         property string passwordComponentUrl
+        property string contextMenuComponentUrl
     }
 
     Component.onDestruction: connectionHelper.closeNetworkSession()

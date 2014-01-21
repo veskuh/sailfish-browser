@@ -25,8 +25,6 @@ Page {
     property string url
 
     property string favicon
-    property Item _contextMenu
-    property bool _ctxMenuActive: _contextMenu != null && _contextMenu.active
 
     property var _deferredLoad: null
     property bool _deferredReload
@@ -156,40 +154,6 @@ Page {
         pageStack.pop(browserPage)
     }
 
-    function openContextMenu(linkHref, imageSrc, linkTitle, contentType) {
-        var ctxMenuComp
-
-        if (_contextMenu) {
-            _contextMenu.linkHref = linkHref
-            _contextMenu.linkTitle = linkTitle.trim()
-            _contextMenu.imageSrc = imageSrc
-            hideVirtualKeyboard()
-            _contextMenu.show()
-        } else {
-            ctxMenuComp = Qt.createComponent(Qt.resolvedUrl("components/BrowserContextMenu.qml"))
-            if (ctxMenuComp.status !== Component.Error) {
-                _contextMenu = ctxMenuComp.createObject(browserPage,
-                                                        {
-                                                            "linkHref": linkHref,
-                                                            "imageSrc": imageSrc,
-                                                            "linkTitle": linkTitle.trim(),
-                                                            "contentType": contentType,
-                                                            "viewId": webView.currentTab.viewId()
-                                                        })
-                hideVirtualKeyboard()
-                _contextMenu.show()
-            } else {
-                console.log("Can't load BrowserContextMenu.qml")
-            }
-        }
-    }
-
-    function hideVirtualKeyboard() {
-        if (Qt.inputMethod.visible) {
-            browserPage.focus = true
-        }
-    }
-
     // Safety clipping. There is clipping in ApplicationWindow that should react upon focus changes.
     // This clipping can handle also clipping of QmlMozView. When this page is active we do not need to clip
     // if input method is not visible.
@@ -269,6 +233,7 @@ Page {
             // These should be a property binding and web container should
             // have a property group from C++ so that it'd would be available earlier.
             popups.passwordComponentUrl = Qt.resolvedUrl("components/AuthDialog.qml")
+            popups.contextMenuComponentUrl = Qt.resolvedUrl("components/BrowserContextMenu.qml")
         }
     }
 
@@ -277,7 +242,7 @@ Page {
 
         anchors.bottom: webView.bottom
         width: parent.width
-        visible: !_ctxMenuActive
+        visible: !webView.popupActive
         opacity: webView.fullscreenMode ? 0.0 : 1.0
         Behavior on opacity { FadeAnimation { duration: webView.foreground ? 300 : 0 } }
 
