@@ -23,34 +23,7 @@ Page {
     property alias currentTab: webView.currentTab
     property string title
     property string url
-
     property string favicon
-
-    property var _deferredLoad: null
-    property bool _deferredReload
-
-    // Used by newTab function
-    property bool newTabRequested
-
-    function newTab(url, foreground, title) {
-        if (foreground) {
-            // This might be something that we don't want to have.
-            if (webView.loading) {
-                webView.stop()
-            }
-            webView.currentTab.loadWhenTabChanges = true
-            webView.captureScreen()
-        }
-        // tabMovel.addTab does not trigger anymore navigateTo call. Always done via
-        // QmlMozView onUrlChanged handler.
-        // Loading newTabs seems to be broken. When an url that was already loaded is loaded again and still
-        // active in one of the tabs, the tab containing the url is not brought to foreground.
-        // This was broken already before this change. We need to add mapping between intented
-        // load url and actual result url to TabModel::activateTab so that finding can be done.
-        newTabRequested = true
-        webView.tabModel.addTab(url, foreground)
-        load(url, title)
-    }
 
     function closeTab(index, loadActive) {
         if (webView.tabModel.count == 0) {
@@ -66,38 +39,7 @@ Page {
     }
 
     function load(url, title, force) {
-        if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
-            && !webView.connectionHelper.haveNetworkConnectivity()
-            && !browserPage._deferredLoad) {
-
-            browserPage._deferredReload = false
-            browserPage._deferredLoad = {
-                "url": url,
-                "title": title
-            }
-            webView.connectionHelper.attemptToConnectNetwork()
-            return
-        }
-
-        if (webView.tabModel.count == 0) {
-            newTabRequested = true
-            webView.tabModel.addTab(url, true)
-        }
-
-        if (title) {
-            browserPage.title = title
-        } else {
-            browserPage.title = ""
-        }
-
-        // Always enable chrome when load is called.
-        webView.chrome = true
-
-        if ((url !== "" && webView.url != url) || force) {
-            browserPage.url = url
-            webView.resourceController.firstFrameRendered = false
-            webView.load(url)
-        }
+        webView.load(url, title, force)
     }
 
     function loadTab(index, url, title) {
@@ -394,18 +336,19 @@ Page {
                 }
                 return
             }
+
             if (webView.url != "") {
                 webView.captureScreen()
                 if (!webView.tabModel.activateTab(url)) {
                     // Not found in tabs list, create newtab and load
-                    newTab(url, true)
+                    webView.tabModel.addTab(url, "", true)
                 }
             } else {
                 // New browser instance, just load the content
                 if (WebUtils.firstUseDone) {
                     load(url)
                 } else {
-                    webView.tabModel.addTab(url, false)
+                    webView.tabModel.addTab(url, "", true)
                 }
             }
             if (browserPage.status !== PageStatus.Active) {

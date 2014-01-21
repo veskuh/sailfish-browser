@@ -37,10 +37,10 @@ public:
         TabIdRole
     };
 
-    Q_INVOKABLE void addTab(const QString& url, bool foreground = false);
+    Q_INVOKABLE void addTab(const QString &url, const QString &title, bool foreground = false);
     Q_INVOKABLE void remove(const int index);
     Q_INVOKABLE void clear();
-    Q_INVOKABLE bool activateTab(const QString& url);
+    Q_INVOKABLE bool activateTab(const QString &url);
     Q_INVOKABLE bool activateTab(const int &index);
     Q_INVOKABLE void closeActiveTab();
 
@@ -77,6 +77,8 @@ signals:
     void loadedChanged();
     void browsingChanged();
     void aboutToCloseActiveTab();
+    void aboutToAddTab(bool foreground);
+    void tabAdded(bool foreground);
 
 private slots:
     void updateThumbPath(QString path, int tabId);
