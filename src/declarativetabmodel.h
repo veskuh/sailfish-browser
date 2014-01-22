@@ -37,7 +37,7 @@ public:
         TabIdRole
     };
 
-    Q_INVOKABLE void addTab(const QString &url, const QString &title, bool foreground = false);
+    Q_INVOKABLE void addTab(const QString &url, const QString &title);
     Q_INVOKABLE void remove(const int index);
     Q_INVOKABLE void clear();
     Q_INVOKABLE bool activateTab(const QString &url);
@@ -72,13 +72,12 @@ public slots:
 
 signals:
     void countChanged();
+    void activeTabChanged();
     void currentTabChanged();
     void currentTabIdChanged();
     void loadedChanged();
     void browsingChanged();
-    void aboutToCloseActiveTab();
-    void aboutToAddTab(bool foreground);
-    void tabAdded(bool foreground);
+    void aboutToAddTab();
 
 private slots:
     void updateThumbPath(QString path, int tabId);
@@ -91,7 +90,7 @@ private:
     void removeTab(const Tab &tab, int index = -1);
     void saveTabOrder();
     int loadTabOrder();
-    void updateActiveTab(const Tab &newActiveTab, bool updateCurrentTab = true);
+    void updateActiveTab(const Tab &newActiveTab);
 
     QPointer<DeclarativeTab> m_currentTab;
     Tab m_activeTab;

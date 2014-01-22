@@ -25,11 +25,16 @@ Page {
 
     function load(url, title) {
         if (page.newTab) {
-            browserPage.tabs.addTab(url, title, true)
+            browserPage.tabs.addTab(url, title)
         } else {
             browserPage.load(url, title)
         }
         _loadRequested = true
+        pageStack.pop(browserPage)
+    }
+
+    function activateTab(index) {
+        browserPage.tabs.activateTab(index)
         pageStack.pop(browserPage)
     }
 
@@ -142,8 +147,12 @@ Page {
                         height: width
 
                         onClicked: {
+                            // TODO : Remove _loadRequested
+                            // and check can be we get rid of activeTab. pageStack::pop
+                            // doesn't work inside delagate since this tab is removed from the model
+                            // (and old active tab pushed to first).
                             _loadRequested = true
-                            browserPage.loadTab(model.index, model.url, model.title)
+                            activateTab(model.index)
                         }
                     }
                 }

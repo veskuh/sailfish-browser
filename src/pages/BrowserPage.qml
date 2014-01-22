@@ -39,17 +39,6 @@ Page {
         webView.load(url, title, force)
     }
 
-    function loadTab(index, url, title) {
-        if (webView.loading) {
-            webView.stop()
-        }
-
-        webView.currentTab.loadWhenTabChanges = true;
-        webView.tabModel.activateTab(index)
-        // When tab is loaded we always pop back to BrowserPage.
-        pageStack.pop(browserPage)
-    }
-
     // Safety clipping. There is clipping in ApplicationWindow that should react upon focus changes.
     // This clipping can handle also clipping of QmlMozView. When this page is active we do not need to clip
     // if input method is not visible.
@@ -119,7 +108,6 @@ Page {
         id: webView
 
         active: browserPage.status === PageStatus.Active
-
         tabModel: TabModel {
             currentTab: webView.currentTab
             browsing: browserPage.status === PageStatus.Active
@@ -327,14 +315,14 @@ Page {
                 webView.captureScreen()
                 if (!webView.tabModel.activateTab(url)) {
                     // Not found in tabs list, create newtab and load
-                    webView.tabModel.addTab(url, "", true)
+                    webView.tabModel.addTab(url, "")
                 }
             } else {
                 // New browser instance, just load the content
                 if (WebUtils.firstUseDone) {
                     load(url)
                 } else {
-                    webView.tabModel.addTab(url, "", true)
+                    webView.tabModel.addTab(url, "")
                 }
             }
             if (browserPage.status !== PageStatus.Active) {
