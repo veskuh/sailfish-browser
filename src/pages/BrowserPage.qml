@@ -31,7 +31,6 @@ Page {
             webView.stop()
         }
 
-        webView.currentTab.loadWhenTabChanges = loadActive
         webView.tabModel.remove(index)
     }
 
