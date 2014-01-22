@@ -155,19 +155,15 @@ WebContainer {
         // Used by newTab function
         property bool newTabRequested
 
-        // Indicates whether the next url that is set to this Tab element will be loaded.
-        // Used when new tabs are created, tabs are loaded, and with back and forward,
+        // Used with back and forward navigation.
         // All of these actions load data asynchronously from the DB, and the changes
         // are reflected in the Tab element.
-        property bool loadWhenTabChanges: false
         property bool backForwardNavigation: false
 
         onUrlChanged: {
-            if (tab.valid && (loadWhenTabChanges || backForwardNavigation)) {
+            if (tab.valid && backForwardNavigation) {
                 // Both url and title are updated before url changed is emitted.
                 load(url, title)
-                // loadWhenTabChanges will be set to false when mozview says that url has changed
-                // loadWhenTabChanges = false
             }
         }
     }
@@ -314,7 +310,6 @@ WebContainer {
                 tab.url = url
             }
 
-            tab.loadWhenTabChanges = false
             tab.newTabRequested = false
         }
 
