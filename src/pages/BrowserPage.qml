@@ -25,7 +25,6 @@ Page {
     property alias history: historyModel
     property alias viewLoading: webView.loading
     property alias currentTab: webView.currentTab
-    property string favicon
 
     function closeTab(index, loadActive) {
         if (webView.tabModel.count == 0) {
@@ -249,7 +248,7 @@ Page {
                         if (favorited) {
                             favorites.removeBookmark(webView.url)
                         } else {
-                            favorites.addBookmark(webView.url, webView.title, favicon)
+                            favorites.addBookmark(webView.url, webView.title, webView.favicon)
                         }
                     }
                 }
