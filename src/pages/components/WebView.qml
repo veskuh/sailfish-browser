@@ -67,24 +67,23 @@ WebContainer {
         }
 
         if (tabModel.count == 0) {
-            tab.newTabRequested = true
             tabModel.addTab(url, title)
-        }
-
-        // Bookmarks and history items pass url and title as arguments.
-        if (title) {
-            tab.title = title
         } else {
-            tab.title = ""
-        }
+            // Bookmarks and history items pass url and title as arguments.
+            if (title) {
+                tab.title = title
+            } else {
+                tab.title = ""
+            }
 
-        // Always enable chrome when load is called.
-        webView.chrome = true
+            // Always enable chrome when load is called.
+            webView.chrome = true
 
-        if ((url !== "" && webView.url != url) || force) {
-            tab.url = url
-            resourceController.firstFrameRendered = false
-            webView.load(url)
+            if ((url !== "" && webView.url != url) || force) {
+                tab.url = url
+                resourceController.firstFrameRendered = false
+                webView.load(url)
+            }
         }
     }
 
@@ -147,9 +146,6 @@ WebContainer {
 
     Tab {
         id: tab
-
-        // Used by newTab function
-        property bool newTabRequested
 
         // Used with back and forward navigation.
         // All of these actions load data asynchronously from the DB, and the changes
@@ -298,15 +294,10 @@ WebContainer {
             if (tab.backForwardNavigation) {
                 tab.updateTab(tab.url, tab.title)
                 tab.backForwardNavigation = false
-            } else if (!tab.newTabRequested) {
-                // Tab has currently always good title.
+            } else {
                 // TODO: Could we add linkClicked to QmlMozView to help this?
                 tab.navigateTo(webView.url)
-            } else {
-                tab.url = url
             }
-
-            tab.newTabRequested = false
         }
 
         onBgcolorChanged: {
