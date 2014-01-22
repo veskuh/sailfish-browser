@@ -21,11 +21,11 @@ class DeclarativeTab : public QQuickItem {
     Q_OBJECT
 
     Q_PROPERTY(bool valid READ valid NOTIFY validChanged FINAL)
-    Q_PROPERTY(QString thumbnailPath READ thumbnailPath WRITE setThumbnailPath NOTIFY thumbPathChanged)
-    Q_PROPERTY(QString url READ url NOTIFY urlChanged)
-    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged)
-    Q_PROPERTY(bool canGoForward READ canGoForward NOTIFY canGoFowardChanged)
-    Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY canGoBackChanged)
+    Q_PROPERTY(QString thumbnailPath READ thumbnailPath WRITE setThumbnailPath NOTIFY thumbPathChanged FINAL)
+    Q_PROPERTY(QString url READ url WRITE setUrl NOTIFY urlChanged FINAL)
+    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged FINAL)
+    Q_PROPERTY(bool canGoForward READ canGoForward NOTIFY canGoFowardChanged FINAL)
+    Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY canGoBackChanged FINAL)
 
 public:
     DeclarativeTab(QQuickItem *parent = 0);
@@ -35,6 +35,7 @@ public:
     void setThumbnailPath(QString thumbnailPath);
 
     QString url() const;
+    void setUrl(QString url);
 
     QString title() const;
     void setTitle(QString title);
@@ -48,8 +49,8 @@ public:
 
     Q_INVOKABLE void goForward();
     Q_INVOKABLE void goBack();
-    Q_INVOKABLE void updateTab(QString url, QString title, QString path);
-    Q_INVOKABLE void navigateTo(QString url, QString title, QString path);
+    Q_INVOKABLE void updateTab(QString url, QString title);
+    Q_INVOKABLE void navigateTo(QString url);
     Q_INVOKABLE void captureScreen(QString url, int x, int y, int width, int height, qreal rotate);
 
 public slots:

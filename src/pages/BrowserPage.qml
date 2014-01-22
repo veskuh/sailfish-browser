@@ -21,8 +21,6 @@ Page {
     property alias history: historyModel
     property alias viewLoading: webView.loading
     property alias currentTab: webView.currentTab
-    property string title
-    property string url
     property string favicon
 
     function closeTab(index, loadActive) {
@@ -45,14 +43,6 @@ Page {
     function loadTab(index, url, title) {
         if (webView.loading) {
             webView.stop()
-        }
-
-        if (url) {
-            browserPage.url = url
-        }
-
-        if (title) {
-            browserPage.title = title
         }
 
         webView.currentTab.loadWhenTabChanges = true;
@@ -137,8 +127,6 @@ Page {
 
             onCountChanged: {
                 if (count === 0 && browsing) {
-                    browserPage.title = ""
-                    browserPage.url = ""
                     pageStack.push(Qt.resolvedUrl("TabPage.qml"), {"browserPage" : browserPage, "initialSearchFocus": true })
                 }
             }
@@ -178,8 +166,8 @@ Page {
             height: visible ? toolBarContainer.height * 3 : 0
             visible: isPortrait
             opacity: progressBar.opacity
-            title: browserPage.title
-            url: browserPage.url
+            title: webView.title
+            url: webView.url
             onSearchClicked: controlArea.openTabPage(true, false, PageStackAction.Animated)
             onCloseClicked: webView.tabModel.closeActiveTab()
         }
@@ -226,8 +214,8 @@ Page {
                            - parent.anchors.rightMargin
 
                     Browser.TitleBar {
-                        url: browserPage.url
-                        title: browserPage.title
+                        url: webView.url
+                        title: webView.title
                         height: parent.height
                         onClicked: controlArea.openTabPage(true, false, PageStackAction.Animated)
                         // Workaround for binding loop jb#15182
@@ -239,11 +227,7 @@ Page {
                     id:backIcon
                     source: "image://theme/icon-m-back"
                     enabled: webView.canGoBack
-                    onClicked: {
-                        // This backForwardNavigation is internal to WebView
-                        tab.backForwardNavigation = true
-                        webView.goBack()
-                    }
+                    onClicked: webView.goBack()
                 }
 
                 Browser.IconButton {
@@ -252,9 +236,9 @@ Page {
                     source: favorited ? "image://theme/icon-m-favorite-selected" : "image://theme/icon-m-favorite"
                     onClicked: {
                         if (favorited) {
-                            favorites.removeBookmark(tab.url)
+                            favorites.removeBookmark(webView.url)
                         } else {
-                            favorites.addBookmark(tab.url, tab.title, favicon)
+                            favorites.addBookmark(webView.url, webView.title, favicon)
                         }
                     }
                 }
@@ -285,11 +269,7 @@ Page {
                 Browser.IconButton {
                     source: "image://theme/icon-m-forward"
                     enabled: webView.canGoForward
-                    onClicked: {
-                        // This backForwardNavigation is internal of WebView
-                        tab.backForwardNavigation = true
-                        webView.goForward()
-                    }
+                    onClicked: webView.goForward()
                 }
             }
         }
