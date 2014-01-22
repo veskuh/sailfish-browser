@@ -34,6 +34,7 @@ WebContainer {
 
     // Groupped properties
     property alias popups: webPopus
+    property alias prompts: webPrompts
 
     function goBack() {
         tab.backForwardNavigation = true
@@ -198,9 +199,7 @@ WebContainer {
                 webView._authData = null
             }
 
-            console.log("password component url: ", webPopus.passwordComponentUrl)
-
-            var dialog = pageStack.push(webPopus.passwordComponentUrl,
+            var dialog = pageStack.push(webPopus.authenticationComponentUrl,
                                         {
                                             "hostname": data.text,
                                             "realm": data.title,
@@ -397,7 +396,7 @@ WebContainer {
             case "embed:selectasync": {
                 var dialog
 
-                dialog = pageStack.push(Qt.resolvedUrl("components/SelectDialog.qml"),
+                dialog = pageStack.push(webPrompts.selectComponentUrl,
                                         {
                                             "options": data.options,
                                             "multiple": data.multiple,
@@ -407,7 +406,7 @@ WebContainer {
             }
             case "embed:alert": {
                 var winid = data.winid
-                var dialog = pageStack.push(Qt.resolvedUrl("components/AlertDialog.qml"),
+                var dialog = pageStack.push(webPrompts.alertComponentUrl,
                                             {"text": data.text})
                 // TODO: also the Async message must be sent when window gets closed
                 dialog.done.connect(function() {
@@ -417,7 +416,7 @@ WebContainer {
             }
             case "embed:confirm": {
                 var winid = data.winid
-                var dialog = pageStack.push(Qt.resolvedUrl("components/ConfirmDialog.qml"),
+                var dialog = pageStack.push(webPrompts.confirmComponentUrl,
                                             {"text": data.text})
                 // TODO: also the Async message must be sent when window gets closed
                 dialog.accepted.connect(function() {
@@ -432,7 +431,7 @@ WebContainer {
             }
             case "embed:prompt": {
                 var winid = data.winid
-                var dialog = pageStack.push(Qt.resolvedUrl("components/PromptDialog.qml"),
+                var dialog = pageStack.push(webPrompts.queryComponentUrl,
                                             {"text": data.text, "value": data.defaultValue})
                 // TODO: also the Async message must be sent when window gets closed
                 dialog.accepted.connect(function() {
@@ -478,7 +477,7 @@ WebContainer {
                                          checkedDontAsk: false,
                                          id: data.id })
                 } else {
-                    var dialog = pageStack.push(Qt.resolvedUrl("components/LocationDialog.qml"), {})
+                    var dialog = pageStack.push(webPopus.locationComponentUrl, {})
                     dialog.accepted.connect(function() {
                         sendAsyncMessage("embedui:premissions", {
                                              allow: true,
@@ -499,7 +498,7 @@ WebContainer {
                 break
             }
             case "embed:login": {
-                pageStack.push(Qt.resolvedUrl("components/PasswordManagerDialog.qml"),
+                pageStack.push(popups.passwordManagerComponentUrl,
                                {
                                    "webView": webView,
                                    "requestId": data.id,
@@ -654,8 +653,22 @@ WebContainer {
     QtObject {
         id: webPopus
 
-        property string passwordComponentUrl
+        // See Silica PR: https://bitbucket.org/jolla/ui-sailfish-silica/pull-request/616
+        // url support is missing and these should be typed as urls.
+        // We don't want to create component before it's needed.
+        property string authenticationComponentUrl
+        property string passwordManagerComponentUrl
         property string contextMenuComponentUrl
+        property string selectComponentUrl
+        property string locationComponentUrl
+    }
+
+    QtObject {
+        id: webPrompts
+
+        property string alertComponentUrl
+        property string confirmComponentUrl
+        property string queryComponentUrl
     }
 
     Component.onDestruction: connectionHelper.closeNetworkSession()
