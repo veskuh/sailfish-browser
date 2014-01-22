@@ -22,8 +22,10 @@ Page {
     // focus to input field on opening
     property bool initialSearchFocus
     property bool newTab
+    property bool historyVisible: _editing || initialSearchFocus
+    property Item historyHeader
+    property Item favoriteHeader
 
-    property bool _loadRequested
     property bool _editing
     property string _search
 
@@ -33,7 +35,6 @@ Page {
         } else {
             browserPage.load(url, title)
         }
-        _loadRequested = true
         pageStack.pop(browserPage)
     }
 
@@ -43,23 +44,6 @@ Page {
     }
 
     backNavigation: browserPage.tabs.count > 0 && browserPage.currentTab.url != ""
-    onStatusChanged: {
-        // If tabs have been closed and user swipes
-        // away from TabPage, then load current tab. backNavigation is disabled when
-        // all tabs have been closed. In addition, if user tabs on favorite,
-        // opens favorite in new tab via context menu, selects history item,
-        // enters url on search field, or actives loading by tapping on an open tab
-        // then loadRequested is set true and this code
-        // path does not trigger loading again.
-        if (!_loadRequested && status == PageStatus.Deactivating) {
-            browserPage.load(browserPage.currentTab.url, browserPage.currentTab.title)
-        }
-    }
-
-    property bool historyVisible: _editing || initialSearchFocus
-    property Item historyHeader
-    property Item favoriteHeader
-
     states: [
         State {
             name: "historylist"
@@ -152,11 +136,8 @@ Page {
                         height: width
 
                         onClicked: {
-                            // TODO : Remove _loadRequested
-                            // and check can be we get rid of activeTab. pageStack::pop
-                            // doesn't work inside delagate since this tab is removed from the model
-                            // (and old active tab pushed to first).
-                            _loadRequested = true
+                            // pageStack::pop doesn't work inside delagate since this tab is removed (deleted)
+                            // from the model (and old active tab pushed to first).
                             activateTab(model.index)
                         }
                     }
