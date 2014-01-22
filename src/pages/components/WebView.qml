@@ -68,7 +68,7 @@ WebContainer {
 
         if (tabModel.count == 0) {
             tab.newTabRequested = true
-            tabModel.addTab(url, title, true)
+            tabModel.addTab(url, title)
         }
 
         // Bookmarks and history items pass url and title as arguments.
@@ -581,29 +581,31 @@ WebContainer {
 
     Connections {
         target: tabModel
-        onAboutToCloseActiveTab: {
+
+        onActiveTabChanged: {
             if (webView.loading) {
                 webView.stop()
             }
 
-            // TODO : Do we really need this?
-            tab.loadWhenTabChanges = true
+            // When all tabs are closed, we're in invalid state.
+            if (tab.valid && webView.readyToLoad) {
+                webContainer.load(tab.url, tab.title)
+            }
+            webContainer.currentTabChanged()
         }
 
         onAboutToAddTab: {
-            if (foreground) {
-                // This might be something that we don't want to have.
-                if (webView.loading) {
-                    webView.stop()
-                }
-                tab.loadWhenTabChanges = true
-                captureScreen()
+            // Only for capturing currently active tab before the new
+            // gets added. Opening to a new tab from context menu
+            // is a case where this is needed. We could stop loading
+            // and capture screen before context menu adds the tab (by context menu).
+            // However, I'd like to see loading handling happening inside this component.
+            // Stopping loading is needed so that we faded status area is not visible
+            // in the capture.
+            if (webView.loading) {
+                webView.stop()
             }
-            tab.newTabRequested = true
-        }
-
-        onTabAdded: {
-            webContainer.load(tab.url, tab.title)
+            captureScreen()
         }
     }
 
