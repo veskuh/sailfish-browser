@@ -29,17 +29,20 @@ WebContainer {
     property alias canGoBack: tab.canGoBack
     property alias canGoForward: tab.canGoForward
 
-    property alias url: tab.url
-    property alias title: tab.title
+    readonly property alias url: tab.url
+    readonly property alias title: tab.title
 
     // Groupped properties
     property alias popups: webPopus
 
     function goBack() {
+        tab.backForwardNavigation = true
         tab.goBack()
     }
 
     function goForward() {
+        // This backForwardNavigation is internal of WebView
+        tab.backForwardNavigation = true
         tab.goForward()
     }
 
@@ -66,24 +69,25 @@ WebContainer {
             tabModel.addTab(url, title, true)
         }
 
+        // Bookmarks and history items pass url and title as arguments.
         if (title) {
-            browserPage.title = title
+            tab.title = title
         } else {
-            browserPage.title = ""
+            tab.title = ""
         }
 
         // Always enable chrome when load is called.
         webView.chrome = true
 
         if ((url !== "" && webView.url != url) || force) {
-            browserPage.url = url
+            tab.url = url
             resourceController.firstFrameRendered = false
             webView.load(url)
         }
     }
 
     function reload() {
-        var url = browserPage.url
+        var url = tab.url
 
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
             && !webView._deferredReload
@@ -276,9 +280,9 @@ WebContainer {
                 browserPage.load(WebUtils.initialPage)
             } else if (tabModel.count > 0) {
                 // First tab is actived when tabs are loaded to the tabs model.
-                browserPage.load(tab.url, tab.title)
+                webContainer.load(tab.url, tab.title)
             } else {
-                browserPage.load(WebUtils.homePage)
+                webContainer.load(WebUtils.homePage, "")
             }
         }
 
@@ -288,24 +292,8 @@ WebContainer {
             }
         }
 
-        //{ // TODO
-        // No resizes while page is not active
-        // also contextmenu size
-        //           if (browserPage.status == PageStatus.Active) {
-        //               return (_contextMenu != null && (_contextMenu.height > tools.height)) ? browserPage.height - _contextMenu.height : browserPage.height - tools.height
-        //               return (_contextMenu != null && (_contextMenu.height > tools.height)) ? 200 : 300
-
-        // Order of onTitleChanged and onUrlChanged is unknown. Hence, use always browserPage.title and browserPage.url
-        // as they are set in the load function of BrowserPage.
-        onTitleChanged: {
-            // This is always after url has changed
-            browserPage.title = title
-            tab.updateTab(browserPage.url, browserPage.title, "")
-        }
-
+        onTitleChanged: tab.title = title
         onUrlChanged: {
-            browserPage.url = url
-
             if (!resourceController.isRejectedGeolocationUrl(url)) {
                 resourceController.rejectedGeolocationUrl = ""
             }
@@ -314,15 +302,18 @@ WebContainer {
                 resourceController.acceptedGeolocationUrl = ""
             }
 
+            // TODO: This if-else-block needs to be checked carefully.
             if (tab.backForwardNavigation) {
-                tab.updateTab(browserPage.url, browserPage.title, "")
+                tab.updateTab(tab.url, tab.title)
                 tab.backForwardNavigation = false
             } else if (!tab.newTabRequested) {
-                // Use browserPage.title here to avoid wrong title to blink.
-                // browserPage.load() updates browserPage's title before load starts.
-                // QmlMozView's title is not correct over here.
-                tab.navigateTo(browserPage.url, browserPage.title, "")
+                // Tab has currently always good title.
+                // TODO: Could we add linkClicked to QmlMozView to help this?
+                tab.navigateTo(webView.url)
+            } else {
+                tab.url = url
             }
+
             tab.loadWhenTabChanges = false
             tab.newTabRequested = false
         }
@@ -373,11 +364,12 @@ WebContainer {
 
         onLoadedChanged: {
             if (loaded) {
+                // This looks redundant after udpate3 TabModel changes.
                 if (url != "about:blank" && url) {
                     // This is always up-to-date in both link clicked and back/forward navigation
                     // captureScreen does not work here as we might have changed to TabPage.
                     // Tab icon clicked takes care of the rest.
-                    tab.updateTab(browserPage.url, browserPage.title, "")
+                    tab.updateTab(tab.url, tab.title)
                 }
 
                 if (!userHasDraggedWhileLoading) {
@@ -594,7 +586,7 @@ WebContainer {
                 webView.stop()
             }
 
-            // Do we really need this
+            // TODO : Do we really need this?
             tab.loadWhenTabChanges = true
         }
 
@@ -611,8 +603,7 @@ WebContainer {
         }
 
         onTabAdded: {
-            // Should webContainer.load
-            browserPage.load(tab.url, tab.title)
+            webContainer.load(tab.url, tab.title)
         }
     }
 
@@ -643,7 +634,7 @@ WebContainer {
 
     ResourceController {
         id: resourceController
-        webView: webView
+        webView: webContainer
         background: webContainer.background
 
         onWebViewSuspended: connectionHelper.closeNetworkSession()
