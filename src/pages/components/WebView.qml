@@ -43,6 +43,7 @@ WebContainer {
     readonly property bool _readyToLoad: contentItem &&
                                          contentItem.viewReady &&
                                          tabModel.loaded
+    property color _decoratorColor: Theme.highlightDimmerColor
 
     function goBack() {
         tab.backForwardNavigation = true
@@ -192,197 +193,201 @@ WebContainer {
         }
     }
 
-    QmlMozView {
-        id: webView
+    Component {
+        id: webViewComponent
+        QmlMozView {
+            id: webView
 
-        property Item container: webContainer
-        property Item tab: tab
-        readonly property bool loaded: loadProgress === 100
-        property bool userHasDraggedWhileLoading
-        property bool viewReady
+            property Item container
+            property Item tab
+            readonly property bool loaded: loadProgress === 100
+            property bool userHasDraggedWhileLoading
+            property bool viewReady
 
-        property bool _deferredReload
-        property var _deferredLoad: null
+            property bool _deferredReload
+            property var _deferredLoad: null
 
-        visible: WebUtils.firstUseDone
-        enabled: container.active
-        // There needs to be enough content for enabling chrome gesture
-        chromeGestureThreshold: container.toolbarHeight
-        chromeGestureEnabled: contentHeight > container.height + chromeGestureThreshold
+            visible: WebUtils.firstUseDone
+            enabled: container.active
+            // There needs to be enough content for enabling chrome gesture
+            chromeGestureThreshold: container.toolbarHeight
+            chromeGestureEnabled: contentHeight > container.height + chromeGestureThreshold
 
-        signal selectionRangeUpdated(variant data)
-        signal selectionCopied(variant data)
-        signal contextMenuRequested(variant data)
+            signal selectionRangeUpdated(variant data)
+            signal selectionCopied(variant data)
+            signal contextMenuRequested(variant data)
 
-        focus: true
-        width: container.parent.width
-        state: ""
+            focus: true
+            width: container.parent.width
+            state: ""
 
-        onLoadProgressChanged: {
-            if (loadProgress > container.loadProgress) {
-                container.loadProgress = loadProgress
-            }
-        }
-
-        onTitleChanged: tab.title = title
-        onUrlChanged: {
-            if (!PopupHandler.isRejectedGeolocationUrl(url)) {
-                PopupHandler.rejectedGeolocationUrl = ""
+            onLoadProgressChanged: {
+                if (loadProgress > container.loadProgress) {
+                    container.loadProgress = loadProgress
+                }
             }
 
-            if (!PopupHandler.isAcceptedGeolocationUrl(url)) {
-                PopupHandler.acceptedGeolocationUrl = ""
-            }
-
-            // TODO: This if-else-block needs to be checked carefully.
-            if (tab.backForwardNavigation) {
-                tab.updateTab(tab.url, tab.title)
-                tab.backForwardNavigation = false
-            } else {
-                // TODO: Could we add linkClicked to QmlMozView to help this?
-                tab.navigateTo(webView.url)
-            }
-        }
-
-        onBgcolorChanged: {
-            var bgLightness = WebUtils.getLightness(bgcolor)
-            var dimmerLightness = WebUtils.getLightness(Theme.highlightDimmerColor)
-            var highBgLightness = WebUtils.getLightness(Theme.highlightBackgroundColor)
-
-            if (Math.abs(bgLightness - dimmerLightness) > Math.abs(bgLightness - highBgLightness)) {
-                verticalScrollDecorator.color = Theme.highlightDimmerColor
-                horizontalScrollDecorator.color = Theme.highlightDimmerColor
-            } else {
-                verticalScrollDecorator.color = Theme.highlightBackgroundColor
-                horizontalScrollDecorator.color = Theme.highlightBackgroundColor
-            }
-
-            sendAsyncMessage("Browser:SelectionColorUpdate",
-                             {
-                                 "color": Theme.secondaryHighlightColor
-                             })
-        }
-
-        onViewInitialized: {
-            addMessageListener("chrome:linkadded")
-            addMessageListener("embed:alert")
-            addMessageListener("embed:confirm")
-            addMessageListener("embed:prompt")
-            addMessageListener("embed:auth")
-            addMessageListener("embed:login")
-            addMessageListener("embed:permissions")
-            addMessageListener("Content:ContextMenu")
-            addMessageListener("Content:SelectionRange");
-            addMessageListener("Content:SelectionCopied");
-            addMessageListener("embed:selectasync")
-
-            loadFrameScript("chrome://embedlite/content/SelectAsyncHelper.js")
-            loadFrameScript("chrome://embedlite/content/embedhelper.js")
-
-            viewReady = true
-        }
-
-        onDraggingChanged: {
-            if (dragging && loading) {
-                userHasDraggedWhileLoading = true
-            }
-        }
-
-        onLoadedChanged: {
-            if (loaded) {
-                // This looks redundant after udpate3 TabModel changes.
-                if (url != "about:blank" && url) {
-                    // This is always up-to-date in both link clicked and back/forward navigation
-                    // captureScreen does not work here as we might have changed to TabPage.
-                    // Tab icon clicked takes care of the rest.
-                    tab.updateTab(tab.url, tab.title)
+            onTitleChanged: tab.title = title
+            onUrlChanged: {
+                if (!PopupHandler.isRejectedGeolocationUrl(url)) {
+                    PopupHandler.rejectedGeolocationUrl = ""
                 }
 
-                if (!userHasDraggedWhileLoading) {
+                if (!PopupHandler.isAcceptedGeolocationUrl(url)) {
+                    PopupHandler.acceptedGeolocationUrl = ""
+                }
+
+                // TODO: This if-else-block needs to be checked carefully.
+                if (tab.backForwardNavigation) {
+                    tab.updateTab(tab.url, tab.title)
+                    tab.backForwardNavigation = false
+                } else {
+                    // TODO: Could we add linkClicked to QmlMozView to help this?
+                    tab.navigateTo(webView.url)
+                }
+            }
+
+            onBgcolorChanged: {
+                // Update only webView
+                if (container.contentItem === webView) {
+                    var bgLightness = WebUtils.getLightness(bgcolor)
+                    var dimmerLightness = WebUtils.getLightness(Theme.highlightDimmerColor)
+                    var highBgLightness = WebUtils.getLightness(Theme.highlightBackgroundColor)
+
+                    if (Math.abs(bgLightness - dimmerLightness) > Math.abs(bgLightness - highBgLightness)) {
+                        container._decoratorColor = Theme.highlightDimmerColor
+                    } else {
+                        container._decoratorColor =  Theme.highlightBackgroundColor
+                    }
+
+                    sendAsyncMessage("Browser:SelectionColorUpdate",
+                                     {
+                                         "color": Theme.secondaryHighlightColor
+                                     })
+                }
+            }
+
+            onViewInitialized: {
+                addMessageListener("chrome:linkadded")
+                addMessageListener("embed:alert")
+                addMessageListener("embed:confirm")
+                addMessageListener("embed:prompt")
+                addMessageListener("embed:auth")
+                addMessageListener("embed:login")
+                addMessageListener("embed:permissions")
+                addMessageListener("Content:ContextMenu")
+                addMessageListener("Content:SelectionRange");
+                addMessageListener("Content:SelectionCopied");
+                addMessageListener("embed:selectasync")
+
+                loadFrameScript("chrome://embedlite/content/SelectAsyncHelper.js")
+                loadFrameScript("chrome://embedlite/content/embedhelper.js")
+
+                viewReady = true
+            }
+
+            onDraggingChanged: {
+                if (dragging && loading) {
+                    userHasDraggedWhileLoading = true
+                }
+            }
+
+            onLoadedChanged: {
+                if (loaded) {
+                    // This looks redundant after udpate3 TabModel changes.
+                    if (url != "about:blank" && url) {
+                        // This is always up-to-date in both link clicked and back/forward navigation
+                        // captureScreen does not work here as we might have changed to TabPage.
+                        // Tab icon clicked takes care of the rest.
+                        tab.updateTab(tab.url, tab.title)
+                    }
+
+                    if (!userHasDraggedWhileLoading) {
+                        container.resetHeight(false)
+                    }
+                }
+            }
+
+            onLoadingChanged: {
+                container.loading = loading
+                if (loading) {
+                    userHasDraggedWhileLoading = false
+                    container.favicon = ""
+                    webView.chrome = true
                     container.resetHeight(false)
                 }
             }
-        }
-
-        onLoadingChanged: {
-            container.loading = loading
-            if (loading) {
-                userHasDraggedWhileLoading = false
-                container.favicon = ""
-                webView.chrome = true
-                container.resetHeight(false)
-            }
-        }
-        onRecvAsyncMessage: {
-            switch (message) {
-            case "chrome:linkadded": {
-                if (data.rel === "shortcut icon") {
-                    container.favicon = data.href
+            onRecvAsyncMessage: {
+                switch (message) {
+                case "chrome:linkadded": {
+                    if (data.rel === "shortcut icon") {
+                        container.favicon = data.href
+                    }
+                    break
                 }
-                break
-            }
-            case "embed:selectasync": {
-                PopupHandler.openSelectDialog(data)
-                break;
-            }
-            case "embed:alert": {
-                PromptHandler.openAlert(data)
-                break
-            }
-            case "embed:confirm": {
-                PromptHandler.openConfirm(data)
-                break
-            }
-            case "embed:prompt": {
-                PromptHandler.openPrompt(data)
-                break
-            }
-            case "embed:auth": {
-                PopupHandler.openAuthDialog(data)
-                break
-            }
-            case "embed:permissions": {
-                PopupHandler.openLocationDialog(data)
-                break
-            }
-            case "embed:login": {
-                PopupHandler.openPasswordManagerDialog(data)
-                break
-            }
-            case "Content:ContextMenu": {
-                PopupHandler.openContextMenu(data)
-                break
-            }
-            case "Content:SelectionRange": {
-                webView.selectionRangeUpdated(data)
-                break
-            }
-            }
-        }
-        onRecvSyncMessage: {
-            // sender expects that this handler will update `response` argument
-            switch (message) {
-            case "Content:SelectionCopied": {
-                webView.selectionCopied(data)
-
-                if (data.succeeded) {
-                    //% "Copied to clipboard"
-                    notification.show(qsTrId("sailfish_browser-la-selection_copied"))
+                case "embed:selectasync": {
+                    PopupHandler.openSelectDialog(data)
+                    break;
                 }
-                break
+                case "embed:alert": {
+                    PromptHandler.openAlert(data)
+                    break
+                }
+                case "embed:confirm": {
+                    PromptHandler.openConfirm(data)
+                    break
+                }
+                case "embed:prompt": {
+                    PromptHandler.openPrompt(data)
+                    break
+                }
+                case "embed:auth": {
+                    PopupHandler.openAuthDialog(data)
+                    break
+                }
+                case "embed:permissions": {
+                    PopupHandler.openLocationDialog(data)
+                    break
+                }
+                case "embed:login": {
+                    PopupHandler.openPasswordManagerDialog(data)
+                    break
+                }
+                case "Content:ContextMenu": {
+                    PopupHandler.openContextMenu(data)
+                    break
+                }
+                case "Content:SelectionRange": {
+                    webView.selectionRangeUpdated(data)
+                    break
+                }
+                }
             }
-            }
-        }
+            onRecvSyncMessage: {
+                // sender expects that this handler will update `response` argument
+                switch (message) {
+                case "Content:SelectionCopied": {
+                    webView.selectionCopied(data)
 
-        // We decided to disable "text selection" until we understand how it
-        // should look like in Sailfish.
-        // TextSelectionController {}
-        states: State {
-            name: "boundHeightControl"
-            when: container.inputPanelVisible || !container.foreground
-            PropertyChanges {
-                target: webView
-                height: container.parent.height
+                    if (data.succeeded) {
+                        //% "Copied to clipboard"
+                        notification.show(qsTrId("sailfish_browser-la-selection_copied"))
+                    }
+                    break
+                }
+                }
+            }
+
+            // We decided to disable "text selection" until we understand how it
+            // should look like in Sailfish.
+            // TextSelectionController {}
+            states: State {
+                name: "boundHeightControl"
+                when: container.inputPanelVisible || !container.foreground
+                PropertyChanges {
+                    target: webView
+                    height: container.parent.height
+                }
             }
         }
     }
@@ -391,14 +396,16 @@ WebContainer {
         id: verticalScrollDecorator
 
         width: 5
-        height: contentItem ? contentItem.verticalScrollDecorator.height : 0
-        y: contentItem ? contentItem.verticalScrollDecorator.y : 0
-        anchors.right: contentItem ? contentItem.right: undefined
-        color: Theme.highlightDimmerColor
+        height: contentItem.verticalScrollDecorator.height
+        y: contentItem.verticalScrollDecorator.y
+        z: 1
+        anchors.right: contentItem.right
+        color: _decoratorColor
         smooth: true
         radius: 2.5
-        visible: contentItem && contentItem.contentHeight > contentItem.height && !contentItem.pinching && !webPopups.active
-        opacity: contentItem && contentItem.moving ? 1.0 : 0.0
+        visible: contentItem.contentHeight > contentItem.height && !contentItem.pinching && !webPopups.active
+        opacity: contentItem.moving ? 1.0 : 0.0
+
         Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
     }
 
@@ -406,16 +413,16 @@ WebContainer {
         id: horizontalScrollDecorator
 
         // TODO: Add notify for horizontalScrollDecorator and verticalScrollDecorator
-        width: contentItem ? contentItem.horizontalScrollDecorator.width : 0
+        width: contentItem.horizontalScrollDecorator.width
         height: 5
-        x: contentItem ? contentItem.horizontalScrollDecorator.x : 0
-        // TODO: cleanup
-        y: browserPage.height - (fullscreenMode ? 0 : toolBarContainer.height) - height
-        color: Theme.highlightDimmerColor
+        x: contentItem.horizontalScrollDecorator.x
+        y: webContainer.parent.height - (fullscreenMode ? 0 : webContainer.toolbarHeight) - height
+        z: 1
+        color: _decoratorColor
         smooth: true
         radius: 2.5
-        visible: contentItem && contentItem.contentWidth > contentItem.width && !contentItem.pinching && !webPopups.active
-        opacity: contentItem && contentItem.moving ? 1.0 : 0.0
+        visible: contentItem.contentWidth > contentItem.width && !contentItem.pinching && !webPopups.active
+        opacity: contentItem.moving ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
     }
 
@@ -527,18 +534,18 @@ WebContainer {
 
     Component.onDestruction: connectionHelper.closeNetworkSession()
     Component.onCompleted: {
+        contentItem = webViewComponent.createObject(webContainer, {"tab": tab, "container": webContainer})
+
         PopupHandler.auxTimer = auxTimer
         PopupHandler.pageStack = pageStack
         PopupHandler.popups = webPopups
-        // TODO : Set this the created contentItem (webView)
-        PopupHandler.activeWebView = webView
+        PopupHandler.activeWebView = contentItem
         PopupHandler.componentParent = browserPage
         PopupHandler.resourceController = resourceController
         PopupHandler.WebUtils = WebUtils
 
         PromptHandler.pageStack = pageStack
-        // TODO : Set this the created contentItem (webView)
-        PromptHandler.activeWebView = webView
+        PromptHandler.activeWebView = contentItem
         PromptHandler.prompts = webPrompts
     }
 }
