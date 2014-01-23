@@ -352,36 +352,6 @@ WebContainer {
         // We decided to disable "text selection" until we understand how it
         // should look like in Sailfish.
         // TextSelectionController {}
-
-        Rectangle {
-            id: verticalScrollDecorator
-
-            width: 5
-            height: webView.verticalScrollDecorator.height
-            y: webView.verticalScrollDecorator.y
-            anchors.right: parent ? parent.right: undefined
-            color: Theme.highlightDimmerColor
-            smooth: true
-            radius: 2.5
-            visible: webView.contentHeight > webView.height && !webView.pinching && !webPopups.active
-            opacity: webView.moving ? 1.0 : 0.0
-            Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
-        }
-
-        Rectangle {
-            id: horizontalScrollDecorator
-            width: webView.horizontalScrollDecorator.width
-            height: 5
-            x: webView.horizontalScrollDecorator.x
-            y: browserPage.height - (fullscreenMode ? 0 : toolBarContainer.height) - height
-            color: Theme.highlightDimmerColor
-            smooth: true
-            radius: 2.5
-            visible: webView.contentWidth > webView.width && !webView.pinching && !webPopups.active
-            opacity: webView.moving ? 1.0 : 0.0
-            Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
-        }
-
         states: State {
             name: "boundHeightControl"
             when: webContainer.inputPanelVisible || !webContainer.foreground
@@ -390,6 +360,36 @@ WebContainer {
                 height: browserPage.height
             }
         }
+    }
+
+    Rectangle {
+        id: verticalScrollDecorator
+
+        width: 5
+        height: webView.verticalScrollDecorator.height
+        y: webView.verticalScrollDecorator.y
+        anchors.right: webView ? webView.right: undefined
+        color: Theme.highlightDimmerColor
+        smooth: true
+        radius: 2.5
+        visible: webView.contentHeight > webView.height && !webView.pinching && !webPopups.active
+        opacity: webView.moving ? 1.0 : 0.0
+        Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
+    }
+
+    Rectangle {
+        id: horizontalScrollDecorator
+
+        width: webView.horizontalScrollDecorator.width
+        height: 5
+        x: webView.horizontalScrollDecorator.x
+        y: browserPage.height - (fullscreenMode ? 0 : toolBarContainer.height) - height
+        color: Theme.highlightDimmerColor
+        smooth: true
+        radius: 2.5
+        visible: webView.contentWidth > webView.width && !webView.pinching && !webPopups.active
+        opacity: webView.moving ? 1.0 : 0.0
+        Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
     }
 
     Connections {
