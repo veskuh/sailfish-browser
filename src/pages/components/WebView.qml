@@ -22,12 +22,12 @@ WebContainer {
     // This property should cover all possible popus
     property alias popupActive: webPopups.active
 
-    property alias loading: webView.loading
+    property bool loading
     property int loadProgress
-    property alias contentItem: webView
+    property Item contentItem
     property TabModel tabModel
     property alias currentTab: tab
-    readonly property bool fullscreenMode: (webView.chromeGestureEnabled && !webView.chrome) || webContainer.inputPanelVisible || !webContainer.foreground
+    readonly property bool fullscreenMode: (contentItem && contentItem.chromeGestureEnabled && !contentItem.chrome) || webContainer.inputPanelVisible || !webContainer.foreground
     property alias canGoBack: tab.canGoBack
     property alias canGoForward: tab.canGoForward
 
@@ -38,6 +38,11 @@ WebContainer {
     // Groupped properties
     property alias popups: webPopups
     property alias prompts: webPrompts
+
+    // Move to C++
+    readonly property bool _readyToLoad: contentItem &&
+                                         contentItem.viewReady &&
+                                         tabModel.loaded
 
     function goBack() {
         tab.backForwardNavigation = true
@@ -51,16 +56,22 @@ WebContainer {
     }
 
     function stop() {
-        webView.stop()
+        if (contentItem) {
+            contentItem.stop()
+        }
     }
 
     function load(url, title, force) {
+        if (!contentItem) {
+            return
+        }
+
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
             && !connectionHelper.haveNetworkConnectivity()
-            && !webView._deferredLoad) {
+            && !contentItem._deferredLoad) {
 
-            webView._deferredReload = false
-            webView._deferredLoad = {
+            contentItem._deferredReload = false
+            contentItem._deferredLoad = {
                 "url": url,
                 "title": title
             }
@@ -79,44 +90,56 @@ WebContainer {
             }
 
             // Always enable chrome when load is called.
-            webView.chrome = true
+            contentItem.chrome = true
 
-            if ((url !== "" && webView.url != url) || force) {
+            if ((url !== "" && contentItem.url != url) || force) {
                 tab.url = url
                 resourceController.firstFrameRendered = false
-                webView.load(url)
+                contentItem.load(url)
             }
         }
     }
 
     function reload() {
+        if (!contentItem) {
+            return
+        }
+
         var url = tab.url
 
         if (url.substring(0, 6) !== "about:" && url.substring(0, 5) !== "file:"
-            && !webView._deferredReload
+            && !contentItem._deferredReload
             && !connectionHelper.haveNetworkConnectivity()) {
 
-            webView._deferredReload = true
-            webView._deferredLoad = null
+            contentItem._deferredReload = true
+            contentItem._deferredLoad = null
             connectionHelper.attemptToConnectNetwork()
             return
         }
 
-        webView.reload()
+        contentItem.reload()
     }
 
     function sendAsyncMessage(name, data) {
-        webView.sendAsyncMessage(name, data)
+        if (!contentItem) {
+            return
+        }
+
+        contentItem.sendAsyncMessage(name, data)
     }
 
     function captureScreen() {
+        if (!contentItem) {
+            return
+        }
+
         if (active && resourceController.firstFrameRendered) {
             var size = Screen.width
             if (browserPage.isLandscape && !webContainer.fullscreenMode) {
                 size -= toolbarRow.height
             }
 
-            tab.captureScreen(webView.url, 0, 0, size, size, browserPage.rotation)
+            tab.captureScreen(contentItem.url, 0, 0, size, size, browserPage.rotation)
         }
     }
 
@@ -125,17 +148,32 @@ WebContainer {
 
     // TODO: Rename pageActive to active and remove there the beginning
     pageActive: active
-    webView: webView
+    webView: contentItem
 
     foreground: Qt.application.active
     inputPanelHeight: window.pageStack.panelSize
     inputPanelOpenHeight: window.pageStack.imSize
     toolbarHeight: toolBarContainer.height
 
+    on_ReadyToLoadChanged: {
+        if (!WebUtils.firstUseDone) {
+            return
+        }
+
+        if (WebUtils.initialPage !== "") {
+            webContainer.load(WebUtils.initialPage)
+        } else if (tabModel.count > 0) {
+            // First tab is actived when tabs are loaded to the tabs model.
+            webContainer.load(tab.url, tab.title)
+        } else {
+            webContainer.load(WebUtils.homePage, "")
+        }
+    }
+
     Rectangle {
         id: background
         anchors.fill: parent
-        color: webView.bgcolor ? webView.bgcolor : "white"
+        color: contentItem && contentItem.bgcolor ? contentItem.bgcolor : "white"
     }
 
     Tab {
@@ -157,8 +195,9 @@ WebContainer {
     QmlMozView {
         id: webView
 
+        property Item container: webContainer
+        property Item tab: tab
         readonly property bool loaded: loadProgress === 100
-        readonly property bool readyToLoad: viewReady && tabModel.loaded
         property bool userHasDraggedWhileLoading
         property bool viewReady
 
@@ -166,37 +205,22 @@ WebContainer {
         property var _deferredLoad: null
 
         visible: WebUtils.firstUseDone
-        enabled: parent.active
+        enabled: container.active
         // There needs to be enough content for enabling chrome gesture
-        chromeGestureThreshold: toolBarContainer.height
-        chromeGestureEnabled: contentHeight > webContainer.height + chromeGestureThreshold
+        chromeGestureThreshold: container.toolbarHeight
+        chromeGestureEnabled: contentHeight > container.height + chromeGestureThreshold
 
         signal selectionRangeUpdated(variant data)
         signal selectionCopied(variant data)
         signal contextMenuRequested(variant data)
 
         focus: true
-        width: browserPage.width
+        width: container.parent.width
         state: ""
 
-        onReadyToLoadChanged: {
-            if (!WebUtils.firstUseDone) {
-                return
-            }
-
-            if (WebUtils.initialPage !== "") {
-                browserPage.load(WebUtils.initialPage)
-            } else if (tabModel.count > 0) {
-                // First tab is actived when tabs are loaded to the tabs model.
-                webContainer.load(tab.url, tab.title)
-            } else {
-                webContainer.load(WebUtils.homePage, "")
-            }
-        }
-
         onLoadProgressChanged: {
-            if (loadProgress > webContainer.loadProgress) {
-                webContainer.loadProgress = loadProgress
+            if (loadProgress > container.loadProgress) {
+                container.loadProgress = loadProgress
             }
         }
 
@@ -275,24 +299,25 @@ WebContainer {
                 }
 
                 if (!userHasDraggedWhileLoading) {
-                    webContainer.resetHeight(false)
+                    container.resetHeight(false)
                 }
             }
         }
 
         onLoadingChanged: {
+            container.loading = loading
             if (loading) {
                 userHasDraggedWhileLoading = false
-                webContainer.favicon = ""
+                container.favicon = ""
                 webView.chrome = true
-                webContainer.resetHeight(false)
+                container.resetHeight(false)
             }
         }
         onRecvAsyncMessage: {
             switch (message) {
             case "chrome:linkadded": {
                 if (data.rel === "shortcut icon") {
-                    webContainer.favicon = data.href
+                    container.favicon = data.href
                 }
                 break
             }
@@ -354,10 +379,10 @@ WebContainer {
         // TextSelectionController {}
         states: State {
             name: "boundHeightControl"
-            when: webContainer.inputPanelVisible || !webContainer.foreground
+            when: container.inputPanelVisible || !container.foreground
             PropertyChanges {
                 target: webView
-                height: browserPage.height
+                height: container.parent.height
             }
         }
     }
@@ -366,29 +391,31 @@ WebContainer {
         id: verticalScrollDecorator
 
         width: 5
-        height: webView.verticalScrollDecorator.height
-        y: webView.verticalScrollDecorator.y
-        anchors.right: webView ? webView.right: undefined
+        height: contentItem ? contentItem.verticalScrollDecorator.height : 0
+        y: contentItem ? contentItem.verticalScrollDecorator.y : 0
+        anchors.right: contentItem ? contentItem.right: undefined
         color: Theme.highlightDimmerColor
         smooth: true
         radius: 2.5
-        visible: webView.contentHeight > webView.height && !webView.pinching && !webPopups.active
-        opacity: webView.moving ? 1.0 : 0.0
+        visible: contentItem && contentItem.contentHeight > contentItem.height && !contentItem.pinching && !webPopups.active
+        opacity: contentItem && contentItem.moving ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
     }
 
     Rectangle {
         id: horizontalScrollDecorator
 
-        width: webView.horizontalScrollDecorator.width
+        // TODO: Add notify for horizontalScrollDecorator and verticalScrollDecorator
+        width: contentItem ? contentItem.horizontalScrollDecorator.width : 0
         height: 5
-        x: webView.horizontalScrollDecorator.x
+        x: contentItem ? contentItem.horizontalScrollDecorator.x : 0
+        // TODO: cleanup
         y: browserPage.height - (fullscreenMode ? 0 : toolBarContainer.height) - height
         color: Theme.highlightDimmerColor
         smooth: true
         radius: 2.5
-        visible: webView.contentWidth > webView.width && !webView.pinching && !webPopups.active
-        opacity: webView.moving ? 1.0 : 0.0
+        visible: contentItem && contentItem.contentWidth > contentItem.width && !contentItem.pinching && !webPopups.active
+        opacity: contentItem && contentItem.moving ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { properties: "opacity"; duration: 400 } }
     }
 
@@ -397,17 +424,18 @@ WebContainer {
 
         onActiveTabChanged: {
             // Stop previous webView
-            if (webView.loading) {
-                webView.stop()
+            if (contentItem && contentItem.loading) {
+                contentItem.stop()
             }
 
             // Not yet actually changed but new activeWebView
             // needs to be set to PopupHandler
             PopupHandler.activeWebView = webView
             PromptHandler.activeWebView = webView
+            webContainer.contentItem = webView
 
             // When all tabs are closed, we're in invalid state.
-            if (tab.valid && webView.readyToLoad) {
+            if (tab.valid && webContainer._readyToLoad) {
                 webContainer.load(tab.url, tab.title)
             }
             webContainer.currentTabChanged()
@@ -421,8 +449,8 @@ WebContainer {
             // However, I'd like to see loading handling happening inside this component.
             // Stopping loading is needed so that we faded status area is not visible
             // in the capture.
-            if (webView.loading) {
-                webView.stop()
+            if (contentItem && contentItem.loading) {
+                contentItem.stop()
             }
             captureScreen()
         }
@@ -435,27 +463,29 @@ WebContainer {
             var url
             var title
 
-            if (webView._deferredLoad) {
-                url = webView._deferredLoad["url"]
-                title = webView._deferredLoad["title"]
-                webView._deferredLoad = null
+            if (contentItem && contentItem._deferredLoad) {
+                url = contentItem._deferredLoad["url"]
+                title = contentItem._deferredLoad["title"]
+                contentItem._deferredLoad = null
 
-                browserPage.load(url, title, true)
-            } else if (webView._deferredReload) {
-                webView._deferredReload = false
-                webView.reload()
+                webContainer.load(url, title, true)
+            } else if (contentItem._deferredReload) {
+                contentItem._deferredReload = false
+                contentItem.reload()
             }
         }
 
         onNetworkConnectivityUnavailable: {
-            webView._deferredLoad = null
-            webView._deferredReload = false
+            if (contentItem) {
+                contentItem._deferredLoad = null
+                contentItem._deferredReload = false
+            }
         }
     }
 
     ResourceController {
         id: resourceController
-        webView: webView
+        webView: contentItem
         background: webContainer.background
 
         onWebViewSuspended: connectionHelper.closeNetworkSession()
@@ -500,12 +530,14 @@ WebContainer {
         PopupHandler.auxTimer = auxTimer
         PopupHandler.pageStack = pageStack
         PopupHandler.popups = webPopups
+        // TODO : Set this the created contentItem (webView)
         PopupHandler.activeWebView = webView
         PopupHandler.componentParent = browserPage
         PopupHandler.resourceController = resourceController
         PopupHandler.WebUtils = WebUtils
 
         PromptHandler.pageStack = pageStack
+        // TODO : Set this the created contentItem (webView)
         PromptHandler.activeWebView = webView
         PromptHandler.prompts = webPrompts
     }

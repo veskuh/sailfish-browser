@@ -44,6 +44,7 @@ public:
     QString title() const;
     void setTitle(QString title);
 
+    int tabId() const;
 
     bool valid() const;
     void invalidate();

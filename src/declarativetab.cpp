@@ -88,6 +88,11 @@ void DeclarativeTab::setTitle(QString title) {
     }
 }
 
+int DeclarativeTab::tabId() const
+{
+    return m_tabId;
+}
+
 void DeclarativeTab::setTabId(int tabId) {
 #ifdef DEBUG_LOGS
     qDebug() << m_tabId << " old values: " << m_link.title() << m_link.url() << " arg tab: " << tabId;
