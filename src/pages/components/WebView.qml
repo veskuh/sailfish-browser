@@ -154,6 +154,8 @@ WebContainer {
     inputPanelOpenHeight: window.pageStack.imSize
     toolbarHeight: toolBarContainer.height
 
+    onTabModelChanged: PopupHandler.tabModel = tabModel
+
     on_ReadyToLoadChanged: {
         if (_readyToLoad) {
             if (!WebUtils.firstUseDone) {
@@ -545,6 +547,7 @@ WebContainer {
         PopupHandler.componentParent = browserPage
         PopupHandler.resourceController = resourceController
         PopupHandler.WebUtils = WebUtils
+        PopupHandler.tabModel = tabModel
 
         PromptHandler.pageStack = pageStack
         PromptHandler.prompts = webPrompts

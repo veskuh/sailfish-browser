@@ -16,6 +16,8 @@ Rectangle {
     property string linkTitle
     property string imageSrc
     property string contentType
+    property TabModel tabModel
+
     property int viewId
     readonly property bool active: visible
 
@@ -83,7 +85,7 @@ Rectangle {
 
             onClicked: {
                 root.visible = false
-                browserPage.tabs.addTab(root.linkHref, root.linkTitle)
+                tabModel.addTab(root.linkHref, root.linkTitle)
             }
         }
 
@@ -119,7 +121,7 @@ Rectangle {
 
             onClicked: {
                 root.visible = false
-                browserPage.tabs.addTab(root.imageSrc, "")
+                tabModel.addTab(root.imageSrc, "")
             }
         }
 
