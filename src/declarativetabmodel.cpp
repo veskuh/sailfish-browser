@@ -154,7 +154,7 @@ void DeclarativeTabModel::closeActiveTab()
             Link emptyLink;
             m_activeTab.setCurrentLink(emptyLink);
             m_currentTab->invalidate();
-            emit activeTabChanged();
+            emit activeTabChanged(0);
         }
     }
 }
@@ -326,7 +326,9 @@ void DeclarativeTabModel::removeTab(const Tab &tab, int index)
 #ifdef DEBUG_LOGS
     qDebug() << "index:" << index << tab.currentLink().url();
 #endif
+
     int tabId = tab.tabId();
+    emit tabClosed(tabId);
     DBManager::instance()->removeTab(tabId);
 
     QFile f(tab.currentLink().thumbPath());
@@ -397,10 +399,11 @@ void DeclarativeTabModel::updateActiveTab(const Tab &newActiveTab)
 
     saveTabOrder();
     if (m_currentTab) {
-        tabIdChanged = m_currentTab->tabId() != newActiveTab.tabId();
+        int oldTabId = m_currentTab->tabId();
+        tabIdChanged = oldTabId != newActiveTab.tabId();
         m_currentTab->tabChanged(m_activeTab);
         if (tabIdChanged) {
-            emit activeTabChanged();
+            emit activeTabChanged(newActiveTab.tabId());
         }
     }
 }

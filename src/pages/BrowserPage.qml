@@ -307,7 +307,9 @@ Page {
             } else {
                 // New browser instance, just load the content
                 if (WebUtils.firstUseDone) {
-                    load(url)
+                    // Load url to current tab. If all tabs were
+                    // closed before a new tab will be created.
+                    webView.load(url)
                 } else {
                     webView.tabModel.addTab(url, "")
                 }
