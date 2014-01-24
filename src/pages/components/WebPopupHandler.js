@@ -15,6 +15,7 @@ var auxTimer
 var contextMenuComponent
 var componentParent
 var resourceController
+var tabModel
 // TODO: WebUtils context property. Should be singleton.
 var WebUtils
 
@@ -130,6 +131,7 @@ function openContextMenu(data) {
                                                             "imageSrc": imageSrc,
                                                             "linkTitle": linkTitle.trim(),
                                                             "contentType": contentType,
+                                                            "tabModel": tabModel,
                                                             "viewId": activeWebView.uniqueID()
                                                         })
                 _hideVirtualKeyboard()
