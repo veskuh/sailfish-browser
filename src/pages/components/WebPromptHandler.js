@@ -54,3 +54,16 @@ function openPrompt(data) {
                          {"winid": winid, "accepted": false})
     })
 }
+
+function openFilePicker(data) {
+    if (data.mode !== 0) {
+        console.log("Gecko file picker requested unsupported mode")
+        return
+    }
+
+    pageStack.push(prompts.uploadFilePickerComponentUrl,
+                   {
+                       "winid": data.winid,
+                       "webView": activeWebView
+                   })
+}

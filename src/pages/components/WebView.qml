@@ -283,6 +283,7 @@ WebContainer {
                 addMessageListener("Content:SelectionRange");
                 addMessageListener("Content:SelectionCopied");
                 addMessageListener("embed:selectasync")
+                addMessageListener("embed:filepicker")
 
                 loadFrameScript("chrome://embedlite/content/SelectAsyncHelper.js")
                 loadFrameScript("chrome://embedlite/content/embedhelper.js")
@@ -327,6 +328,10 @@ WebContainer {
                     if (data.rel === "shortcut icon") {
                         container.favicon = data.href
                     }
+                    break
+                }
+                case "embed:filepicker": {
+                    PromptHandler.openFilePicker(data)
                     break
                 }
                 case "embed:selectasync": {
@@ -537,6 +542,7 @@ WebContainer {
         property string alertComponentUrl
         property string confirmComponentUrl
         property string queryComponentUrl
+        property string uploadFilePickerComponentUrl
     }
 
     Component.onDestruction: connectionHelper.closeNetworkSession()

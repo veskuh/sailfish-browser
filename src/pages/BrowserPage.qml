@@ -118,6 +118,7 @@ Page {
             prompts.alertComponentUrl = Qt.resolvedUrl("components/AlertDialog.qml")
             prompts.confirmComponentUrl = Qt.resolvedUrl("components/ConfirmDialog.qml")
             prompts.queryComponentUrl = Qt.resolvedUrl("components/PromptDialog.qml")
+            prompts.uploadFilePickerComponentUrl = Qt.resolvedUrl("components/UploadFilePicker.qml")
         }
     }
 
